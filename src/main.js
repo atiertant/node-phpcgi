@@ -23,29 +23,30 @@ function bufferToString(buffer) {
  * @return {Object} result {headers: {Status: 200, 'content-type': 'text/html'}, body: 'xxxx'}
  */
 function parse(buffer) {
-    var source = bufferToString(buffer);
+    var source = Buffer.concat(buffer);
     // http spec: use `\r\n` as line break, except body
     var result = {};
-    var lines = source.split('\r\n');
-    var line;
 
     // headers
     var headers = {};
-    while (lines.length) {
-        line = lines.shift();
-        if (line) {
-            line = line.split(':');
-            headers[line[0]] = line[1];
-        }
-        else {
-            break;
+    var start = 0;
+    for (var i=0; i < source.length; i++) {
+        // check for `\r\n
+        if (source[i] === 13 && source[i+1] === 10) {
+            var line = source.slice(start, i-1).toString();
+            var c = line.split(': ');
+            if (c[0] !== '' && c.length === 2) {
+                headers[c[0]] = c[1];
+            }
+            start = i+2;
         }
     }
+
     result.headers = headers;
 
     // body
     // if body has `\r\n`, join it back to the body string
-    result.body = lines.join('\r\n');
+    result.body = source.slice(start, source.length);
 
     return result;
 }
@@ -98,10 +99,11 @@ exports = module.exports = function (options) {
     var end = options.end || function (e) {
         var statusCode = e.statusCode;
         var headers = e.headers;
-        var body = e.body || '';
+        var body = e.body || Buffer.from('', 'utf8');
 
         res.writeHead(statusCode, headers);
-        res.end(body);
+        res.write(body, 'binary');
+        res.end();
     };
 
     var info = url.parse(req.url);
