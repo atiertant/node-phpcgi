@@ -33,7 +33,7 @@ function parse(buffer) {
     for (var i=0; i < source.length; i++) {
         // check for `\r\n
         if (source[i] === 13 && source[i+1] === 10) {
-            var line = source.slice(start, i-1).toString();
+            var line = source.slice(start, i).toString();
             var c = line.split(': ');
             if (c[0] !== '' && c.length === 2) {
                 headers[c[0]] = c[1];
